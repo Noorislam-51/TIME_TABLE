@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timetable — Faculty of Commerce and Business</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0a10;
+    --panel:#121219;
+    --panel-2:#15151e;
+    --border:rgba(255,255,255,0.08);
+    --border-strong:rgba(255,255,255,0.14);
+    --text:#eceaf2;
+    --muted:#9491a4;
+    --muted-2:#6f6c7d;
+    --purple:#8a5cf6;
+    --purple-strong:#7c3aed;
+    --purple-soft:rgba(138,92,246,0.14);
+    --purple-soft-border:rgba(138,92,246,0.35);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 12% 0%, rgba(120,80,220,0.16), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 92% 15%, rgba(120,80,220,0.10), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+  }
+  .brand-font{font-family:Georgia,"Times New Roman",serif;}
+
+  /* ---------- NAV ---------- */
+  nav{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:22px 48px;border-bottom:1px solid var(--border);
+    position:sticky;top:0;background:rgba(10,10,16,0.85);backdrop-filter:blur(8px);z-index:50;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    width:36px;height:36px;border-radius:50%;
+    background:linear-gradient(135deg,var(--purple),#c026d3);
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:700;letter-spacing:0.5px;color:#fff;
+  }
+  .brand-name{font-size:18px;letter-spacing:0.3px;}
+  .nav-links{display:flex;gap:34px;}
+  .nav-links a{
+    color:var(--muted);text-decoration:none;font-size:15px;cursor:pointer;
+    padding-bottom:6px;border-bottom:2px solid transparent;transition:.15s;
+  }
+  .nav-links a:hover{color:var(--text);}
+  .nav-links a.active{color:var(--purple);border-bottom-color:var(--purple);}
+
+  main{max-width:1180px;margin:0 auto;padding:0 32px 80px;}
+  .page{display:none;}
+  .page.active{display:block;}
+
+  /* ---------- HOME ---------- */
+  .hero{text-align:center;padding:100px 20px 40px;}
+  .hero h1{font-size:56px;margin:0;font-weight:800;letter-spacing:-1px;}
+  .hero h1 span{color:var(--purple);}
+  .hero p{color:var(--muted);font-size:17px;margin:18px 0 26px;}
+  .hero .divider{width:60px;height:2px;background:var(--purple);margin:0 auto;}
+  .cards{display:flex;gap:26px;justify-content:center;margin-top:60px;flex-wrap:wrap;}
+  .card{
+    width:280px;background:var(--panel);border:1px solid var(--border);
+    border-radius:var(--radius);padding:38px 28px;text-align:center;cursor:pointer;
+    transition:.18s;
+  }
+  .card:hover{border-color:var(--purple-soft-border);transform:translateY(-2px);}
+  .card-icon{
+    width:64px;height:64px;border-radius:50%;margin:0 auto 20px;
+    background:var(--purple-soft);border:1px solid var(--purple-soft-border);
+    display:flex;align-items:center;justify-content:center;font-size:26px;
+  }
+  .card h3{font-size:22px;margin:0 0 8px;font-family:Georgia,serif;}
+  .card p{color:var(--muted-2);font-size:14px;margin:0;}
+
+  /* ---------- SCHEDULE PAGE HEADER ---------- */
+  .page-header{text-align:center;padding:56px 20px 30px;}
+  .page-header h1{font-size:44px;font-weight:800;margin:0;letter-spacing:-0.5px;}
+  .page-header .sub{
+    color:var(--muted-2);font-size:12px;letter-spacing:2.5px;margin-top:10px;
+  }
+
+  /* ---------- FILTER PANEL ---------- */
+  .filter-panel{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:26px 28px;margin-bottom:34px;
+  }
+  .filter-label{
+    font-size:11px;letter-spacing:2px;color:var(--muted-2);margin-bottom:10px;
+    display:block;font-weight:600;
+  }
+  .day-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;}
+  .day-tab{
+    padding:8px 18px;border-radius:9px;border:1px solid var(--border-strong);
+    background:transparent;color:var(--muted);font-size:14px;cursor:pointer;transition:.15s;
+  }
+  .day-tab:hover{border-color:var(--purple-soft-border);color:var(--text);}
+  .day-tab.active{background:var(--purple-strong);border-color:var(--purple-strong);color:#fff;}
+
+  .filter-grid{
+    display:grid;grid-template-columns:repeat(4,1fr) auto;gap:18px;align-items:end;
+  }
+  .filter-field select,.filter-field input{
+    width:100%;padding:11px 14px;border-radius:9px;border:1px solid var(--border-strong);
+    background:var(--panel-2);color:var(--text);font-size:14px;outline:none;
+  }
+  .filter-field select:focus,.filter-field input:focus{border-color:var(--purple);}
+  .reset-btn{
+    padding:11px 22px;border-radius:9px;border:none;background:var(--purple-strong);
+    color:#fff;font-size:14px;cursor:pointer;font-weight:600;white-space:nowrap;height:44px;
+  }
+  .reset-btn:hover{background:var(--purple);}
+
+  /* ---------- SCHEDULE LIST ---------- */
+  .schedule-meta{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:11px;letter-spacing:2px;color:var(--muted-2);font-weight:600;
+    margin:0 4px 18px;
+  }
+  .day-block{margin-bottom:38px;}
+  .day-title{
+    display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;margin-bottom:14px;
+  }
+  .day-dot{width:8px;height:8px;border-radius:50%;background:var(--purple);}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  thead th{
+    text-align:left;font-size:11px;letter-spacing:1.5px;color:var(--muted-2);
+    font-weight:600;padding:14px 18px;border-bottom:1px solid var(--border);
+  }
+  tbody td{padding:16px 18px;border-bottom:1px solid var(--border);font-size:14px;vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:rgba(255,255,255,0.02);}
+  .time-cell{font-weight:700;color:var(--text);white-space:nowrap;}
+  .subject-cell{display:flex;align-items:center;gap:10px;}
+  .code-chip{
+    font-size:10px;letter-spacing:0.5px;color:var(--muted);background:var(--panel-2);
+    border:1px solid var(--border-strong);padding:3px 8px;border-radius:5px;white-space:nowrap;
+  }
+  .subject-name{color:var(--text);}
+  .teacher-cell{color:var(--muted);}
+  .section-chip{
+    font-size:12px;color:#c9b6ff;background:var(--purple-soft);
+    border:1px solid var(--purple-soft-border);padding:4px 11px;border-radius:20px;white-space:nowrap;
+  }
+  .sem-chip{
+    font-size:11px;color:var(--muted-2);background:var(--panel-2);
+    border:1px solid var(--border-strong);padding:3px 9px;border-radius:6px;white-space:nowrap;
+  }
+  .hall-cell{color:var(--muted);white-space:nowrap;}
+  .empty-note,.status-note{color:var(--muted-2);text-align:center;padding:40px 0;font-size:14px;}
+
+  /* ---------- FOOTER ---------- */
+  footer{border-top:1px solid var(--border);padding:50px 48px 30px;margin-top:60px;}
+  .footer-grid{display:flex;gap:100px;max-width:1180px;margin:0 auto;flex-wrap:wrap;}
+  .footer-col h4{font-size:15px;margin:0 0 14px;}
+  .footer-col p{color:var(--muted-2);font-size:13px;margin:6px 0;}
+  .footer-bottom{text-align:center;color:var(--muted-2);font-size:12px;margin-top:40px;}
+
+  @media (max-width:900px){
+    .filter-grid{grid-template-columns:1fr 1fr;}
+    nav{padding:18px 20px;}
+    main{padding:0 16px 60px;}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <div class="brand-mark">FC</div>
+    <div class="brand-name brand-font">Faculty of Commerce and Business</div>
+  </div>
+  <div class="nav-links">
+    <a data-page="home" class="active">Home</a>
+    <a data-page="theory">Theory</a>
+    <a data-page="tutorials">Tutorials</a>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ================= HOME ================= -->
+  <section id="page-home" class="page active">
+    <div class="hero">
+      <h1>Time <span>Table</span></h1>
+      <p>Organize your week. Stay ahead.</p>
+      <div class="divider"></div>
+    </div>
+    <div class="cards">
+      <div class="card" data-goto="theory">
+        <div class="card-icon">📖</div>
+        <h3 class="brand-font">Theory</h3>
+        <p>View Theory Time Table</p>
+      </div>
+      <div class="card" data-goto="tutorials">
+        <div class="card-icon">📊</div>
+        <h3 class="brand-font">Tutorials</h3>
+        <p>View Tutorials Time Table</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= THEORY ================= -->
+  <section id="page-theory" class="page">
+    <div class="page-header">
+      <h1>Timetable</h1>
+      <div class="sub">MASTER OF COMMERCE — THEORY</div>
+    </div>
+
+    <div class="filter-panel">
+      <span class="filter-label">DAY</span>
+      <div class="day-tabs" id="theory-day-tabs"></div>
+
+      <div class="filter-grid">
+        <div class="filter-field">
+          <span class="filter-label">SUBJECT</span>
+          <select id="theory-subject"><option value="">All Subjects</option></select>
+        </div>
+        <div class="filter-field">
+          <span class="filter-label">SECTION</span>
+          <select id="theory-section"><option value="">All Sections</option></select>
+        </div>
+        <div class="filter-field">
+          <span class="filter-label">SEMESTER</span>
+          <select id="theory-semester"><option value="">All Semesters</option></select>
+        </div>
+        <div class="filter-field">
+          <span class="filter-label">TEACHER</span>
+          <input type="text" id="theory-teacher" placeholder="Search teacher name...">
+        </div>
+        <button class="reset-btn" id="theory-reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="schedule-meta">
+      <span>CLASS SCHEDULE</span>
+      <span id="theory-count">0 classes found</span>
+    </div>
+    <div id="theory-results"><div class="status-note">Loading timetable data…</div></div>
+  </section>
+
+  <!-- ================= TUTORIALS ================= -->
+  <section id="page-tutorials" class="page">
+    <div class="page-header">
+      <h1>Timetable</h1>
+      <div class="sub">MASTER OF COMMERCE — TUTORIALS</div>
+    </div>
+
+    <div class="filter-panel">
+      <span class="filter-label">DAY</span>
+      <div class="day-tabs" id="tut-day-tabs"></div>
+
+      <div class="filter-grid">
+        <div class="filter-field">
+          <span class="filter-label">SUBJECT</span>
+          <select id="tut-subject"><option value="">All Subjects</option></select>
+        </div>
+        <div class="filter-field">
+          <span class="filter-label">SECTION</span>
+          <select id="tut-section"><option value="">All Sections</option></select>
+        </div>
+        <div class="filter-field">
+          <span class="filter-label">SEMESTER</span>
+          <select id="tut-semester"><option value="">All Semesters</option></select>
+        </div>
+        <div class="filter-field">
+          <span class="filter-label">TEACHER</span>
+          <input type="text" id="tut-teacher" placeholder="Search teacher name...">
+        </div>
+        <button class="reset-btn" id="tut-reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="schedule-meta">
+      <span>CLASS SCHEDULE</span>
+      <span id="tut-count">0 classes found</span>
+    </div>
+    <div id="tut-results"><div class="status-note">Loading timetable data…</div></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h4>Important Links</h4>
+      <p>University of Delhi</p>
+      <p>University Grants Commission (UGC)</p>
+      <p>National Assessment and Accreditation Council (NAAC)</p>
+    </div>
+    <div class="footer-col">
+      <h4>Connect with us</h4>
+      <p>Faculty of Commerce and Business (FCB)</p>
+      <p>Department of Commerce</p>
+    </div>
+  </div>
+  <div class="footer-bottom">Department of Commerce · Data loaded live from MCOM_Sem1_Timetable.xlsx &amp; MCOM_Sem3_Timetable.xlsx</div>
+</footer>
+
+<script>
+/* =========================================================
+   CONFIG — the two Excel files must sit in the SAME FOLDER
+   as this HTML file, with these exact names.
+   ========================================================= */
+const SOURCES = [
+  { url: 'MCOM_Sem1_Timetable.xlsx', semester: 'Sem 1' },
+  { url: 'MCOM_Sem3_Timetable.xlsx', semester: 'Sem 3' }
+];
+const DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const DAY_SHORT = { Monday:'Mon', Tuesday:'Tue', Wednesday:'Wed', Thursday:'Thu', Friday:'Fri' };
+
+let ALL_ROWS = [];
+
+/* ---------- NAV ---------- */
+document.querySelectorAll('.nav-links a').forEach(a=>{
+  a.addEventListener('click', ()=> goto(a.dataset.page));
+});
+document.querySelectorAll('[data-goto]').forEach(el=>{
+  el.addEventListener('click', ()=> goto(el.dataset.goto));
+});
+function goto(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-links a').forEach(a=>a.classList.toggle('active', a.dataset.page===page));
+}
+
+/* ---------- TIME PARSE ---------- */
+function timeToMinutes(t){
+  const m = (t||'').trim().match(/(\d+):(\d+)/);
+  if(!m) return 0;
+  return parseInt(m[1],10)*60+parseInt(m[2],10);
+}
+
+/* ---------- LOAD + PARSE ONE WORKBOOK ---------- */
+async function loadRows(url, semester){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Could not fetch ' + url + ' (HTTP ' + res.status + ')');
+  const buf = await res.arrayBuffer();
+  const wb = XLSX.read(buf, { type:'array' });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
+
+  const rows = [];
+  raw.forEach(r=>{
+    const day = (r[0]||'').toString().trim();
+    if(!DAY_ORDER.includes(day)) return; // skips blank row + header row automatically
+
+    const timing = (r[1]||'').toString().trim();
+    const subjectRaw = (r[2]||'').toString().trim();
+    const teacher = (r[3]||'').toString().trim();
+    const section = (r[4]||'').toString().trim();
+    const hall = (r[5]||'').toString().trim();
+
+    let code = '', name = subjectRaw;
+    const idx = subjectRaw.indexOf(':');
+    if(idx > -1){ code = subjectRaw.slice(0, idx).trim(); name = subjectRaw.slice(idx+1).trim(); }
+
+    // A row is a Tutorial/Practical class if the subject is tagged "(Practical)"
+    // or the section explicitly says "Practical". Everything else is Theory.
+    const isPractical = /\(practical\)/i.test(subjectRaw) || /practical/i.test(section);
+
+    rows.push({
+      day, timing, startMinutes: timeToMinutes(timing.split('-')[0]),
+      code, subject:name, subjectFull:subjectRaw,
+      teacher, section, hall, semester,
+      category: isPractical ? 'tutorials' : 'theory'
+    });
+  });
+  return rows;
+}
+
+/* ---------- BUILD A FILTER-CONTROLLED SCHEDULE VIEW ---------- */
+function initSchedule(prefix, category){
+  const state = { day:'All', subject:'', section:'', semester:'', teacher:'' };
+  const dayTabsEl = document.getElementById(prefix+'-day-tabs');
+  const subjectEl = document.getElementById(prefix+'-subject');
+  const sectionEl = document.getElementById(prefix+'-section');
+  const semesterEl = document.getElementById(prefix+'-semester');
+  const teacherEl = document.getElementById(prefix+'-teacher');
+  const resetBtn = document.getElementById(prefix+'-reset');
+  const resultsEl = document.getElementById(prefix+'-results');
+  const countEl = document.getElementById(prefix+'-count');
+
+  const rowsForPage = ALL_ROWS.filter(r=>r.category===category);
+
+  // Day tabs
+  ['All', ...DAY_ORDER.map(d=>DAY_SHORT[d])].forEach(label=>{
+    const btn = document.createElement('button');
+    btn.className = 'day-tab' + (label==='All' ? ' active' : '');
+    btn.textContent = label;
+    btn.addEventListener('click', ()=>{
+      state.day = label;
+      dayTabsEl.querySelectorAll('.day-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      render();
+    });
+    dayTabsEl.appendChild(btn);
+  });
+
+  // Subject options (unique, sorted)
+  const subjects = [...new Set(rowsForPage.map(r=>r.subjectFull))].sort();
+  subjects.forEach(s=>{
+    const o = document.createElement('option'); o.value = s; o.textContent = s;
+    subjectEl.appendChild(o);
+  });
+
+  // Section options
+  const sections = [...new Set(rowsForPage.map(r=>r.section))].sort();
+  sections.forEach(s=>{
+    const o = document.createElement('option'); o.value = s; o.textContent = s;
+    sectionEl.appendChild(o);
+  });
+
+  // Semester options
+  const semesters = [...new Set(rowsForPage.map(r=>r.semester))].sort();
+  semesters.forEach(s=>{
+    const o = document.createElement('option'); o.value = s; o.textContent = s;
+    semesterEl.appendChild(o);
+  });
+
+  subjectEl.addEventListener('change', ()=>{ state.subject = subjectEl.value; render(); });
+  sectionEl.addEventListener('change', ()=>{ state.section = sectionEl.value; render(); });
+  semesterEl.addEventListener('change', ()=>{ state.semester = semesterEl.value; render(); });
+  teacherEl.addEventListener('input', ()=>{ state.teacher = teacherEl.value; render(); });
+
+  resetBtn.addEventListener('click', ()=>{
+    state.day='All'; state.subject=''; state.section=''; state.semester=''; state.teacher='';
+    subjectEl.value=''; sectionEl.value=''; semesterEl.value=''; teacherEl.value='';
+    dayTabsEl.querySelectorAll('.day-tab').forEach((b,i)=>b.classList.toggle('active', i===0));
+    render();
+  });
+
+  function render(){
+    const filtered = rowsForPage.filter(r=>
+      (state.day==='All' || DAY_SHORT[r.day]===state.day) &&
+      (state.subject==='' || r.subjectFull===state.subject) &&
+      (state.section==='' || r.section===state.section) &&
+      (state.semester==='' || r.semester===state.semester) &&
+      (state.teacher==='' || r.teacher.toLowerCase().includes(state.teacher.toLowerCase()))
+    );
+
+    countEl.textContent = filtered.length + ' classes found';
+    resultsEl.innerHTML = '';
+
+    if(filtered.length===0){
+      resultsEl.innerHTML = '<div class="empty-note">No classes match these filters.</div>';
+      return;
+    }
+
+    DAY_ORDER.forEach(day=>{
+      const dayRows = filtered.filter(r=>r.day===day).sort((a,b)=>a.startMinutes-b.startMinutes);
+      if(dayRows.length===0) return;
+
+      const block = document.createElement('div');
+      block.className = 'day-block';
+      block.innerHTML = `
+        <div class="day-title"><span class="day-dot"></span>${day}</div>
+        <table>
+          <thead><tr>
+            <th>TIME</th><th>SUBJECT</th><th>TEACHER</th><th>SECTION</th><th>SEM</th><th>HALL</th>
+          </tr></thead>
+          <tbody>
+            ${dayRows.map(r=>`
+              <tr>
+                <td class="time-cell">${r.timing}</td>
+                <td><div class="subject-cell">
+                  ${r.code ? `<span class="code-chip">${r.code}</span>` : ''}
+                  <span class="subject-name">${r.subject}</span>
+                </div></td>
+                <td class="teacher-cell">${r.teacher}</td>
+                <td><span class="section-chip">${r.section}</span></td>
+                <td><span class="sem-chip">${r.semester}</span></td>
+                <td class="hall-cell">${r.hall}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      resultsEl.appendChild(block);
+    });
+  }
+
+  render();
+}
+
+/* ---------- BOOT ---------- */
+(async function boot(){
+  try{
+    const results = await Promise.all(SOURCES.map(s=>loadRows(s.url, s.semester)));
+    ALL_ROWS = results.flat();
+    initSchedule('theory', 'theory');
+    initSchedule('tut', 'tutorials');
+  }catch(err){
+    const msg = `<div class="status-note">
+      Couldn't load timetable data.<br>
+      Make sure <b>MCOM_Sem1_Timetable.xlsx</b> and <b>MCOM_Sem3_Timetable.xlsx</b> are in the
+      same folder as this file, and that you're opening it through a local server
+      (e.g. VS Code "Live Server") rather than double-clicking it.<br>
+      <span style="color:var(--muted-2);font-size:12px">${err.message}</span>
+    </div>`;
+    document.getElementById('theory-results').innerHTML = msg;
+    document.getElementById('tut-results').innerHTML = msg;
+  }
+})();
+</script>
+
+</body>
+</html>
